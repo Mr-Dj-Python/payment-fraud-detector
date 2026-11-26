@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Signal Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f2f5f7;
+    --card: #ffffff;
+    --ink: #15202b;
+    --muted: #58707f;
+    --border: #d7e1e6;
+    --accent: #0f7a8c;
+    --accent-soft: rgba(15, 122, 140, 0.12);
+    --ok: #2f8f5b;
+    --warn: #bb7a1d;
+    --warn-soft: rgba(187, 122, 29, 0.12);
+    --bad: #b5342a;
+    --bad-soft: rgba(181, 52, 42, 0.12);
+    --shadow: 0 1px 2px rgba(21, 32, 43, 0.06), 0 10px 26px rgba(21, 32, 43, 0.06);
+    --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0b1316; --card: #121b1f; --ink: #e6edf0; --muted: #8fa3ab;
+      --border: #233036; --accent: #3fd0e0; --accent-soft: rgba(63,208,224,0.14);
+      --ok: #4caf7d; --warn: #e0a548; --warn-soft: rgba(224,165,72,0.14);
+      --bad: #e06857; --bad-soft: rgba(224,104,87,0.14);
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 28px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0b1316; --card: #121b1f; --ink: #e6edf0; --muted: #8fa3ab;
+    --border: #233036; --accent: #3fd0e0; --accent-soft: rgba(63,208,224,0.14);
+    --ok: #4caf7d; --warn: #e0a548; --warn-soft: rgba(224,165,72,0.14);
+    --bad: #e06857; --bad-soft: rgba(224,104,87,0.14);
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 28px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); padding: 2rem 1.25rem 3.5rem; }
+  .wrap { max-width: 1140px; margin: 0 auto; }
+
+  header { margin-bottom: 1.4rem; max-width: 70ch; }
+  h1 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.1rem); margin: 0 0 0.4rem; font-weight: 700; letter-spacing: -0.01em; }
+  .lede { color: var(--muted); margin: 0; font-size: 0.98rem; }
+
+  .tabs { display: flex; gap: 0.5rem; margin: 1.3rem 0 1.1rem; flex-wrap: wrap; }
+  .tab {
+    font-family: var(--font-mono); font-size: 0.82rem; padding: 0.5rem 0.9rem;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--card);
+    color: var(--muted); cursor: pointer;
+  }
+  .tab.active { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); font-weight: 600; }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .controls { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+  button.ctrl {
+    font-family: var(--font-mono); font-size: 0.8rem; padding: 0.42rem 0.8rem;
+    border-radius: 7px; border: 1px solid var(--border); background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  button.ctrl:hover { border-color: var(--accent); }
+  button.ctrl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.ctrl.primary { background: var(--accent); color: var(--card); border-color: var(--accent); font-weight: 600; }
+  .clock { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); margin-left: auto; }
+
+  .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.25rem; align-items: start; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 1rem 1.1rem; }
+
+  svg.graph { width: 100%; height: auto; display: block; }
+  .node circle { fill: var(--card); stroke: var(--muted); stroke-width: 1.6; transition: opacity 0.25s ease, stroke 0.2s ease; }
+  .node.center circle, .node.focus circle { stroke: var(--accent); stroke-width: 2; }
+  .node.flagged circle { stroke: var(--bad); stroke-width: 2.4; }
+  .node text { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); text-anchor: middle; }
+  .node .role { font-size: 9px; fill: var(--muted); }
+  .edge { stroke: var(--accent); stroke-width: 1.8; fill: none; opacity: 0; transition: opacity 0.3s ease; }
+  .edge.shown { opacity: 1; }
+  .edge.expired { opacity: 0.25; stroke-dasharray: 3 3; stroke: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { .edge, .node circle { transition: none; } }
+
+  .legend { display: flex; gap: 1rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.6rem; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .tracks { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 1rem; }
+  .track { border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 0.85rem; }
+  .track-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+  .track-label { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; }
+  .track-frac { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .slots { display: flex; gap: 0.3rem; }
+  .slot { width: 13px; height: 13px; border-radius: 50%; border: 1.6px solid var(--muted); }
+  .slot.filled { background: var(--accent); border-color: var(--accent); }
+  .track.fired { border-color: var(--bad); }
+  .track.fired .slot.filled { background: var(--bad); border-color: var(--bad); }
+  .track.fired .track-frac { color: var(--bad); font-weight: 600; }
+
+  .verdict { display: none; border-radius: 10px; padding: 0.8rem 0.95rem; margin-bottom: 1rem; font-size: 0.9rem; }
+  .verdict.show { display: block; }
+  .verdict.warn { background: var(--warn-soft); border: 1px solid var(--warn); color: var(--ink); }
+  .verdict.bad { background: var(--bad-soft); border: 1px solid var(--bad); color: var(--ink); }
+  .verdict .vtitle { font-family: var(--font-mono); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+  .verdict.warn .vtitle { color: var(--warn); }
+  .verdict.bad .vtitle { color: var(--bad); }
+
+  .log { font-family: var(--font-mono); font-size: 0.78rem; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 0.3rem; border-top: 1px solid var(--border); padding-top: 0.6rem; }
+  .log-line { color: var(--muted); }
+  .log-line b { color: var(--ink); font-weight: 600; }
+  .log-line.fire { color: var(--bad); }
+  .log-line.evict { color: var(--muted); font-style: italic; }
+
+  .note { font-size: 0.8rem; color: var(--muted); margin-top: 0.8rem; }
+  footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Signal Room</h1>
+    <p class="lede">
+      Three scenarios, played back as transactions actually arrive. Watch the
+      graph build up, the detector's counters fill, and where it does
+      (or doesn't) raise a flag — including the one case where it flags
+      something that isn't fraud.
+    </p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-scenario="ordinary" role="tab" aria-selected="true">Ordinary Day</button>
+    <button class="tab" data-scenario="payroll" role="tab" aria-selected="false">Payroll Run</button>
+    <button class="tab" data-scenario="ring" role="tab" aria-selected="false">Fraud Ring</button>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl primary" id="playBtn">Pause</button>
+    <button class="ctrl" id="stepBtn">Step</button>
+    <button class="ctrl" id="resetBtn">Reset</button>
+    <span class="clock" id="clock">t = 0ms</span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <svg class="graph" id="graph" viewBox="0 0 740 420" role="img" aria-label="Live transaction graph for the selected scenario"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--accent)"></span> active account</span>
+        <span><span class="sw" style="border:1.6px solid var(--muted); background:transparent"></span> counterparty</span>
+        <span><span class="sw" style="background:var(--bad)"></span> flagged</span>
+        <span>&mdash; &mdash; expired edge</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="tracks" id="tracks"></div>
+      <div class="verdict" id="verdict">
+        <div class="vtitle" id="verdictTitle"></div>
+        <div id="verdictBody"></div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <p class="note" id="scenarioNote"></p>
+
+  <footer>
+    Timestamps are simulated/virtual milliseconds, compressed for this demo &mdash;
+    the real system's default window is 5 minutes, not 500ms. Mechanics match
+    <code style="font-family:var(--font-mono)">graph_store.py</code> /
+    <code style="font-family:var(--font-mono)">detector.py</code> exactly: edges
+    expire on insert, distinct-counterparty counts trip a threshold, nothing
+    outside the touched accounts is ever scanned.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const SCENARIOS = {
+    ordinary: {
+      label: "Ordinary Day", layout: "radial", center: "you", windowMs: 500, threshold: 3,
+      steps: [
+        { t: 0,    from: "you", to: "neha" },
+        { t: 200,  from: "you", to: "rahul" },
+        { t: 650,  from: "you", to: "amit" },
+        { t: 1300, from: "you", to: "priya" },
+        { t: 1450, from: "you", to: "karan" },
+      ],
+      note: "Never fires — old payments expire out of the window before enough pile up at once.",
+    },
+    payroll: {
+      label: "Payroll Run", layout: "radial", center: "employer", windowMs: 500, threshold: 3,
+      steps: [
+        { t: 0,  from: "employer", to: "emp1" },
+        { t: 20, from: "employer", to: "emp2" },
+        { t: 40, from: "employer", to: "emp3" },
+      ],
+      note: "Fires — but this is payroll, not fraud. A real, documented false positive (same fan-out count, same threshold).",
+      severity: "warn",
+    },
+    ring: {
+      label: "Fraud Ring", layout: "pipeline", windowMs: 5000, threshold: 3,
+      cols: { left: ["origin"], mid: ["mule1", "mule2", "mule3"], right: ["cashout"] },
+      steps: [
+        { t: 0,  from: "origin", to: "mule1" },
+        { t: 10, from: "origin", to: "mule2" },
+        { t: 20, from: "origin", to: "mule3" },
+        { t: 30, from: "mule1",  to: "cashout" },
+        { t: 40, from: "mule2",  to: "cashout" },
+        { t: 50, from: "mule3",  to: "cashout" },
+      ],
+      note: "Fires twice — fan-out at origin, fan-in at cashout. Caught inside the settlement window: funds held, not declined.",
+      severity: "bad",
+    },
+  };
+
+  const svg = document.getElementById("graph");
+  const tracksEl = document.getElementById("tracks");
+  const logEl = document.getElementById("log");
+  const verdictEl = document.getElementById("verdict");
+  const verdictTitle = document.getElementById("verdictTitle");
+  const verdictBody = document.getElementById("verdictBody");
+  const clockEl = document.getElementById("clock");
+  const noteEl = document.getElementById("scenarioNote");
+  const playBtn = document.getElementById("playBtn");
+
+  let current = "ordinary";
+  let stepIndex = 0;
+  let playing = true;
+  let timer = null;
+  let accounts = {};   // id -> { edges: [{cp, t, dir}] }
+  let tracks = {};     // key -> { account, dir, threshold, fired }
+  let nodePos = {};    // id -> {x,y}
+
+  function tracksFor(sc) {
+    if (sc.layout === "radial") return [{ key: sc.center + ":OUT", account: sc.center, dir: "OUT", threshold: sc.threshold, label: sc.center + " → distinct OUT" }];
+    return [
+      { key: sc.cols.left[0] + ":OUT", account: sc.cols.left[0], dir: "OUT", threshold: sc.threshold, label: sc.cols.left[0] + " → distinct OUT" },
+      { key: sc.cols.right[0] + ":IN", account: sc.cols.right[0], dir: "IN", threshold: sc.threshold, label: sc.cols.right[0] + " ← distinct IN" },
+    ];
+  }
+
+  function computeLayout(sc) {
+    nodePos = {};
+    if (sc.layout === "radial") {
+      nodePos[sc.center] = { x: 370, y: 210 };
+      const others = [...new Set(sc.steps.map(s => s.to))];
+      const n = others.length;
+      others.forEach((id, i) => {
+        const angle = -Math.PI / 2 + (i / n) * Math.PI * 2;
+        nodePos[id] = { x: 370 + 160 * Math.cos(angle), y: 210 + 150 * Math.sin(angle) };
+      });
+    } else {
+      sc.cols.left.forEach((id, i) => nodePos[id] = { x: 110, y: 210 });
+      const n = sc.cols.mid.length;
+      sc.cols.mid.forEach((id, i) => nodePos[id] = { x: 370, y: 90 + i * ((420 - 180) / Math.max(1, n - 1)) });
+      sc.cols.right.forEach((id) => nodePos[id] = { x: 630, y: 210 });
+    }
+  }
+
+  function buildStaticNodes(sc) {
+    svg.innerHTML = '<defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"></path></marker></defs>';
+    const allIds = Object.keys(nodePos);
+    allIds.forEach(id => {
+      const p = nodePos[id];
+      const isCenter = sc.layout === "radial" ? id === sc.center : (sc.cols.left.includes(id) || sc.cols.right.includes(id));
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("class", "node" + (isCenter ? " focus" : ""));
+      g.setAttribute("id", "node-" + id);
+      g.setAttribute("data-account", id);
+      g.innerHTML = '<circle cx="' + p.x + '" cy="' + p.y + '" r="24" style="opacity:' + (isCenter ? 1 : 0.25) + '"></circle>' +
+        '<text x="' + p.x + '" y="' + (p.y + 4) + '">' + id + '</text>';
+      svg.appendChild(g);
+    });
+  }
+
+  function edgeId(from, to, t) { return "edge-" + from + "-" + to + "-" + t; }
+
+  function drawEdge(from, to, t) {
+    const a = nodePos[from], b = nodePos[to];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const r = 26;
+    const x1 = a.x + (dx / dist) * r, y1 = a.y + (dy / dist) * r;
+    const x2 = b.x - (dx / dist) * r, y2 = b.y - (dy / dist) * r;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("id", edgeId(from, to, t));
+    path.setAttribute("class", "edge");
+    path.setAttribute("d", "M " + x1 + " " + y1 + " L " + x2 + " " + y2);
+    path.setAttribute("marker-end", "url(#arrow)");
+    svg.insertBefore(path, svg.firstChild.nextSibling);
+    requestAnimationFrame(() => path.classList.add("shown"));
+    [from, to].forEach(id => {
+      const node = document.getElementById("node-" + id);
+      if (node) node.querySelector("circle").style.opacity = 1;
+    });
+  }
+
+  function expireEdge(from, to, t) {
+    const el = document.getElementById(edgeId(from, to, t));
+    if (el) el.classList.add("expired");
+  }
+
+  function renderTracks(sc) {
+    tracksEl.innerHTML = "";
+    tracksFor(sc).forEach(tr => {
+      tracks[tr.key] = { ...tr, fired: false };
+      const div = document.createElement("div");
+      div.className = "track";
+      div.id = "track-" + tr.key;
+      div.innerHTML =
+        '<div class="track-head"><span class="track-label">' + tr.label + '</span><span class="track-frac" id="frac-' + tr.key + '">0/' + tr.threshold + '</span></div>' +
+        '<div class="slots" id="slots-' + tr.key + '">' + Array.from({ length: tr.threshold }).map(() => '<span class="slot"></span>').join("") + '</div>';
+      tracksEl.appendChild(div);
+    });
+  }
+
+  function updateTrack(key, distinctCount, justFired) {
+    const slotsWrap = document.getElementById("slots-" + key);
+    const frac = document.getElementById("frac-" + key);
+    const trackDiv = document.getElementById("track-" + key);
+    const threshold = tracks[key].threshold;
+    Array.from(slotsWrap.children).forEach((slot, i) => slot.classList.toggle("filled", i < distinctCount));
+    frac.textContent = Math.min(distinctCount, threshold) + "/" + threshold;
+    if (justFired) trackDiv.classList.add("fired");
+  }
+
+  function log(text, cls) {
+    const line = document.createElement("div");
+    line.className = "log-line" + (cls ? " " + cls : "");
+    line.innerHTML = text;
+    logEl.appendChild(line);
+  }
+
+  function showVerdict(sc, text) {
+    verdictEl.className = "verdict show " + (sc.severity || "bad");
+    verdictTitle.textContent = sc.severity === "warn" ? "Flagged — false positive" : "Flagged — ring caught";
+    verdictBody.textContent = text;
+  }
+
+  function distinctCounterparties(accountId, dir, nowMs, windowMs) {
+    const stats = accounts[accountId];
+    if (!stats) return 0;
+    const cutoff = nowMs - windowMs;
+    const set = new Set();
+    stats.edges.forEach(e => { if (e.dir === dir && e.t >= cutoff) set.add(e.cp); });
+    return set.size;
+  }
+
+  function applyStep(sc, step) {
+    clockEl.textContent = "t = " + step.t + "ms";
+    const cutoff = step.t - sc.windowMs;
+    [step.from, step.to].forEach(acc => {
+      if (!accounts[acc]) accounts[acc] = { edges: [] };
+      accounts[acc].edges.forEach(e => {
+        if (e.t < cutoff && !e.evicted) { e.evicted = true; expireEdge(e.selfIsOut ? acc : e.cp, e.selfIsOut ? e.cp : acc, e.t); log("t=" + step.t + "ms &mdash; <b>" + (e.selfIsOut ? acc : e.cp) + " → " + (e.selfIsOut ? e.cp : acc) + "</b> edge expired", "evict"); }
+      });
+    });
+    accounts[step.from].edges.push({ cp: step.to, t: step.t, dir: "OUT", selfIsOut: true });
+    accounts[step.to].edges.push({ cp: step.from, t: step.t, dir: "IN", selfIsOut: false });
+    drawEdge(step.from, step.to, step.t);
+    log("t=" + step.t + "ms &mdash; <b>" + step.from + " → " + step.to + "</b> (OUT + IN record created)");
+
+    Object.values(tracks).forEach(tr => {
+      const count = distinctCounterparties(tr.account, tr.dir, step.t, sc.windowMs);
+      const justFired = !tr.fired && count >= tr.threshold;
+      if (justFired) {
+        tr.fired = true;
+        const node = document.getElementById("node-" + tr.account);
+        if (node) node.classList.add("flagged");
+        log("t=" + step.t + "ms &mdash; <b>" + tr.account + "</b> hit " + tr.threshold + "/" + tr.threshold + " distinct " + tr.dir + " &mdash; FLAGGED", "fire");
+        showVerdict(sc, sc.note);
+      }
+      updateTrack(tr.key, count, justFired);
+    });
+  }
+
+  function resetScenario() {
+    const sc = SCENARIOS[current];
+    stepIndex = 0;
+    accounts = {}; tracks = {};
+    clockEl.textContent = "t = 0ms";
+    logEl.innerHTML = "";
+    verdictEl.className = "verdict";
+    noteEl.textContent = sc.layout === "pipeline"
+      ? "origin fans money out to the mules; each mule forwards to cashout."
+      : "watch " + sc.center + "’s distinct-counterparty count as payments arrive.";
+    computeLayout(sc);
+    buildStaticNodes(sc);
+    renderTracks(sc);
+  }
+
+  function stepForward() {
+    const sc = SCENARIOS[current];
+    if (stepIndex >= sc.steps.length) { pause(); return; }
+    applyStep(sc, sc.steps[stepIndex]);
+    stepIndex++;
+    if (stepIndex >= sc.steps.length) pause();
+  }
+
+  function play() { playing = true; playBtn.textContent = "Pause"; timer = setInterval(stepForward, 900); }
+  function pause() { playing = false; playBtn.textContent = "Play"; clearInterval(timer); }
+
+  playBtn.addEventListener("click", () => playing ? pause() : play());
+  document.getElementById("stepBtn").addEventListener("click", () => { pause(); stepForward(); });
+  document.getElementById("resetBtn").addEventListener("click", () => { pause(); resetScenario(); play(); });
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
+      tab.classList.add("active"); tab.setAttribute("aria-selected", "true");
+      current = tab.dataset.scenario;
+      pause(); resetScenario(); play();
+    });
+  });
+
+  resetScenario();
+  play();
+})();
+</script>
+</body>
+</html>

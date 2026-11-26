@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ledger &amp; Circuit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b2430;
+    --paper: #eef1ec;
+    --paper-raised: #f6f8f4;
+    --business-surface: #e9e2d2;
+    --business-border: #cdbd9a;
+    --tech-surface: #dde3e6;
+    --tech-border: #aab7bc;
+    --accent: #1f7a73;
+    --accent-ink: #0d3b37;
+    --accent-soft: rgba(31, 122, 115, 0.14);
+    --muted: #5b6a63;
+    --ok: #2f7a4f;
+    --warn: #b4602a;
+    --bad: #a23b2e;
+    --line-idle: rgba(91, 106, 99, 0.28);
+    --shadow: 0 1px 2px rgba(27, 36, 48, 0.08), 0 6px 16px rgba(27, 36, 48, 0.05);
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e7ece9;
+      --paper: #11161a;
+      --paper-raised: #161c20;
+      --business-surface: #2b2520;
+      --business-border: #4a3f32;
+      --tech-surface: #1d262a;
+      --tech-border: #37464b;
+      --accent: #55d6c8;
+      --accent-ink: #d2fbf4;
+      --accent-soft: rgba(85, 214, 200, 0.16);
+      --muted: #9db0a8;
+      --ok: #52b67d;
+      --warn: #d98a4a;
+      --bad: #d2695a;
+      --line-idle: rgba(157, 176, 168, 0.26);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #e7ece9;
+    --paper: #11161a;
+    --paper-raised: #161c20;
+    --business-surface: #2b2520;
+    --business-border: #4a3f32;
+    --tech-surface: #1d262a;
+    --tech-border: #37464b;
+    --accent: #55d6c8;
+    --accent-ink: #d2fbf4;
+    --accent-soft: rgba(85, 214, 200, 0.16);
+    --muted: #9db0a8;
+    --ok: #52b67d;
+    --warn: #d98a4a;
+    --bad: #d2695a;
+    --line-idle: rgba(157, 176, 168, 0.26);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    padding: 2.25rem 1.5rem 3.5rem;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  header { max-width: 62ch; margin-bottom: 2rem; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.6rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 1.3rem + 2vw, 2.65rem);
+    margin: 0 0 0.6rem;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 58ch;
+  }
+
+  .board-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .col-labels {
+    display: none;
+  }
+
+  button.reset-btn {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--line-idle);
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  button.reset-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+  button.reset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.reset-btn[hidden] { display: none; }
+
+  .board {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 clamp(2rem, 6vw, 5.5rem);
+  }
+
+  .board svg.connectors {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: visible;
+  }
+
+  .column { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 0.85rem; }
+
+  .card {
+    text-align: left;
+    width: 100%;
+    border-radius: 10px;
+    padding: 0.95rem 1.05rem;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, border-color 0.15s ease;
+    font-family: inherit;
+    color: inherit;
+  }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .card.business {
+    background: var(--business-surface);
+    border: 1px solid var(--business-border);
+  }
+  .card.tech {
+    background: var(--tech-surface);
+    border: 1px solid var(--tech-border);
+  }
+
+  .card .card-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.3rem;
+  }
+
+  .card.business .card-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.08rem;
+    margin: 0 0 0.3rem;
+    text-wrap: balance;
+  }
+  .card.tech .card-title {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 0.3rem;
+  }
+
+  .card p { margin: 0; font-size: 0.9rem; color: var(--ink); opacity: 0.88; }
+
+  .card .pills { display: flex; gap: 0.4rem; margin-top: 0.55rem; flex-wrap: wrap; }
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .pill.ok { color: var(--ok); }
+  .pill.warn { color: var(--warn); }
+
+  .board.has-selection .card { opacity: 0.38; transform: scale(0.99); }
+  .board.has-selection .card.active {
+    opacity: 1;
+    transform: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow);
+  }
+
+  .detail {
+    margin-top: 1.75rem;
+    min-height: 3.4rem;
+  }
+
+  .detail-panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+    display: none;
+    gap: 0.25rem;
+  }
+  .detail-panel.visible { display: grid; }
+
+  .detail-panel .detail-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  .detail-panel p { margin: 0; font-size: 0.95rem; }
+
+  .detail-empty {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    padding-top: 0.2rem;
+  }
+
+  footer {
+    margin-top: 2.5rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line-idle);
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  footer code { font-family: var(--font-mono); background: var(--paper-raised); padding: 0.05rem 0.35rem; border-radius: 4px; }
+
+  .trace-section { margin-top: 3.25rem; }
+  .trace-section h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.3rem, 1rem + 1vw, 1.65rem);
+    margin: 0 0 0.3rem;
+    text-wrap: balance;
+  }
+  .trace-section .lede { margin-bottom: 1.6rem; }
+
+  .trace-group { margin-bottom: 2.25rem; }
+  .trace-group-title {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    background: var(--tech-surface);
+    border: 1px solid var(--tech-border);
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    margin-bottom: 0.9rem;
+  }
+
+  .ledger-wrap { overflow-x: auto; border: 1px solid var(--line-idle); border-radius: 10px; }
+
+  table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--paper-raised);
+    font-size: 0.88rem;
+  }
+  table.ledger th, table.ledger td {
+    padding: 0.65rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line-idle);
+  }
+  table.ledger tr:last-child td { border-bottom: none; }
+  table.ledger th {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    background: transparent;
+  }
+  table.ledger td.step-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    width: 2.2rem;
+  }
+  table.ledger td.tx-cell { font-family: var(--font-mono); font-weight: 600; white-space: nowrap; }
+
+  .record-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+  .record-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; position: relative; top: -1px; }
+  .record-dot.out { background: var(--accent); }
+  .record-dot.in { background: var(--muted); }
+  .record-acct { font-weight: 600; }
+  .record-detail { color: var(--muted); }
+
+  .slots { display: flex; align-items: center; gap: 0.3rem; }
+  .slot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    border: 1.5px solid var(--muted);
+    flex: none;
+  }
+  .slot.filled { background: var(--accent); border-color: var(--accent); }
+  .slot-frac {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-left: 0.35rem;
+  }
+
+  tr.fires td { background: var(--accent-soft); }
+  tr.fires td.tx-cell { color: var(--accent-ink); }
+  tr.fires .slot-frac { color: var(--accent-ink); font-weight: 600; }
+
+  .step-row { cursor: pointer; }
+  .step-row:hover .records-cell { box-shadow: 0 0 0 1px var(--line-idle) inset; }
+  .step-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .records-cell {
+    border-radius: 8px;
+    transition: opacity 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  }
+  table.ledger.has-selection .records-cell { opacity: 0.35; }
+  table.ledger.has-selection tr.selected .records-cell {
+    opacity: 1;
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--accent) inset;
+  }
+  table.ledger.has-selection tr.selected .record-line { font-weight: 600; }
+  table.ledger.has-selection tr.selected .record-dot {
+    width: 9px; height: 9px;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .verdict-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 600;
+    background: var(--accent);
+    color: var(--paper);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+  }
+  .verdict-sub { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; }
+  .no-verdict { color: var(--muted); font-family: var(--font-mono); font-size: 0.8rem; }
+
+  .trace-legend {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-bottom: 1.1rem;
+  }
+  .trace-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+  .trace-footnote {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  @media (max-width: 700px) {
+    table.ledger { font-size: 0.8rem; }
+  }
+
+  @media (max-width: 760px) {
+    .board { grid-template-columns: 1fr; gap: 1.1rem; }
+    .board svg.connectors { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, button.reset-btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">payment-fraud-detector &middot; business ⇄ code map</p>
+    <h1>Ledger &amp; Circuit</h1>
+    <p class="lede">
+      Eight things the PRD worries about, on the left. The exact object or
+      function in the code that answers each one, on the right. Click either
+      side of a pair to see how they connect.
+    </p>
+  </header>
+
+  <div class="board-controls">
+    <span class="col-labels"></span>
+    <button class="reset-btn" id="resetBtn" hidden>&larr; show all connections</button>
+  </div>
+
+  <div class="board" id="board">
+    <svg class="connectors" id="connectors" aria-hidden="true"></svg>
+
+    <div class="column" id="businessColumn" aria-label="Business concerns">
+      <!-- business cards injected by JS -->
+    </div>
+
+    <div class="column" id="techColumn" aria-label="Technical design">
+      <!-- tech cards injected by JS -->
+    </div>
+  </div>
+
+  <div class="detail" id="detail">
+    <div class="detail-panel" id="detailPanel">
+      <p class="detail-label">Why this is the answer</p>
+      <p id="detailText"></p>
+    </div>
+    <p class="detail-empty" id="detailEmpty">Select a card on either side to see the bridge between them.</p>
+  </div>
+
+  <section class="trace-section" aria-label="Fan-out and fan-in record trace">
+    <p class="eyebrow">graph_store.py &rarr; detector.py</p>
+    <h2>Fan-out &amp; fan-in: which step creates which record</h2>
+    <p class="lede">
+      Six transactions from one injected ring, in the order they're processed.
+      Every row's two records come from one <code style="font-family:var(--font-mono)">insert_transaction()</code>
+      call; the slots column is <code style="font-family:var(--font-mono)">check_fan_out</code>/<code style="font-family:var(--font-mono)">check_fan_in</code>
+      counting distinct counterparties against a threshold of 3.
+    </p>
+
+    <p class="trace-legend">
+      <span><span class="record-dot out"></span> OUT edge</span>
+      <span><span class="record-dot in"></span> IN edge</span>
+      <span><span class="slot filled" style="display:inline-block"></span> counterparty seen</span>
+      <span><span class="slot" style="display:inline-block"></span> not yet</span>
+    </p>
+
+    <div class="trace-group">
+      <p class="trace-group-title">fan-out at <strong>origin</strong> &middot; threshold = 3</p>
+      <div class="ledger-wrap">
+        <table class="ledger">
+          <thead>
+            <tr><th>Step</th><th>Transaction</th><th>Records created</th><th>origin's distinct OUT</th><th>Verdict</th></tr>
+          </thead>
+          <tbody>
+            <tr class="step-row" tabindex="0" role="button" aria-pressed="false">
+              <td class="step-num">1</td>
+              <td class="tx-cell">origin &rarr; mule1</td>
+              <td class="records-cell">
+                <div class="record-line"><span class="record-dot out"></span><span class="record-acct">origin</span><span class="record-detail">&rarr; mule1</span></div>
+                <div class="record-line"><span class="record-dot in"></span><span class="record-acct">mule1</span><span class="record-detail">&larr; origin</span></div>
+              </td>
+              <td><span class="slots"><span class="slot filled"></span><span class="slot"></span><span class="slot"></span><span class="slot-frac">1/3</span></span></td>
+              <td><span class="no-verdict">not yet</span></td>
+            </tr>
+            <tr class="step-row" tabindex="0" role="button" aria-pressed="false">
+              <td class="step-num">2</td>
+              <td class="tx-cell">origin &rarr; mule2</td>
+              <td class="records-cell">
+                <div class="record-line"><span class="record-dot out"></span><span class="record-acct">origin</span><span class="record-detail">&rarr; mule2</span></div>
+                <div class="record-line"><span class="record-dot in"></span><span class="record-acct">mule2</span><span class="record-detail">&larr; origin</span></div>
+              </td>
+              <td><span class="slots"><span class="slot filled"></span><span class="slot filled"></span><span class="slot"></span><span class="slot-frac">2/3</span></span></td>
+              <td><span class="no-verdict">not yet</span></td>
+            </tr>
+            <tr class="step-row fires" tabindex="0" role="button" aria-pressed="false">
+              <td class="step-num">3</td>
+              <td class="tx-cell">origin &rarr; mule3</td>
+              <td class="records-cell">
+                <div class="record-line"><span class="record-dot out"></span><span class="record-acct">origin</span><span class="record-detail">&rarr; mule3</span></div>
+                <div class="record-line"><span class="record-dot in"></span><span class="record-acct">mule3</span><span class="record-detail">&larr; origin</span></div>
+              </td>
+              <td><span class="slots"><span class="slot filled"></span><span class="slot filled"></span><span class="slot filled"></span><span class="slot-frac">3/3</span></span></td>
+              <td>
+                <span class="verdict-badge">FAN_OUT</span>
+                <span class="verdict-sub">accounts_involved = {origin}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="trace-group">
+      <p class="trace-group-title">fan-in at <strong>cashout</strong> &middot; threshold = 3</p>
+      <div class="ledger-wrap">
+        <table class="ledger">
+          <thead>
+            <tr><th>Step</th><th>Transaction</th><th>Records created</th><th>cashout's distinct IN</th><th>Verdict</th></tr>
+          </thead>
+          <tbody>
+            <tr class="step-row" tabindex="0" role="button" aria-pressed="false">
+              <td class="step-num">4</td>
+              <td class="tx-cell">mule1 &rarr; cashout</td>
+              <td class="records-cell">
+                <div class="record-line"><span class="record-dot out"></span><span class="record-acct">mule1</span><span class="record-detail">&rarr; cashout</span></div>
+                <div class="record-line"><span class="record-dot in"></span><span class="record-acct">cashout</span><span class="record-detail">&larr; mule1</span></div>
+              </td>
+              <td><span class="slots"><span class="slot filled"></span><span class="slot"></span><span class="slot"></span><span class="slot-frac">1/3</span></span></td>
+              <td><span class="no-verdict">not yet</span></td>
+            </tr>
+            <tr class="step-row" tabindex="0" role="button" aria-pressed="false">
+              <td class="step-num">5</td>
+              <td class="tx-cell">mule2 &rarr; cashout</td>
+              <td class="records-cell">
+                <div class="record-line"><span class="record-dot out"></span><span class="record-acct">mule2</span><span class="record-detail">&rarr; cashout</span></div>
+                <div class="record-line"><span class="record-dot in"></span><span class="record-acct">cashout</span><span class="record-detail">&larr; mule2</span></div>
+              </td>
+              <td><span class="slots"><span class="slot filled"></span><span class="slot filled"></span><span class="slot"></span><span class="slot-frac">2/3</span></span></td>
+              <td><span class="no-verdict">not yet</span></td>
+            </tr>
+            <tr class="step-row fires" tabindex="0" role="button" aria-pressed="false">
+              <td class="step-num">6</td>
+              <td class="tx-cell">mule3 &rarr; cashout</td>
+              <td class="records-cell">
+                <div class="record-line"><span class="record-dot out"></span><span class="record-acct">mule3</span><span class="record-detail">&rarr; cashout</span></div>
+                <div class="record-line"><span class="record-dot in"></span><span class="record-acct">cashout</span><span class="record-detail">&larr; mule3</span></div>
+              </td>
+              <td><span class="slots"><span class="slot filled"></span><span class="slot filled"></span><span class="slot filled"></span><span class="slot-frac">3/3</span></span></td>
+              <td>
+                <span class="verdict-badge">FAN_IN</span>
+                <span class="verdict-sub">accounts_involved = {cashout}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="trace-footnote">
+      Not shown above: each of steps 4&ndash;6 is also a mule forwarding money it just
+      received — so <code style="font-family:var(--font-mono)">check_hop_chain()</code>
+      independently fires on the mule's own side of that same step. Fan-in and
+      hop-chain are two separate checks that happen to both trip on the same
+      three transactions here; see the hop-chain pair above for that mechanism on its own.
+    </p>
+  </section>
+
+  <footer>
+    Full detail: <code>PRD.md</code> (business case) &middot; <code>HLD.md</code>/<code>LLD.md</code> (design) &middot;
+    <code>ARCHITECTURE.md</code> (decision records) &middot; <code>CODE_WORKFLOW.md</code> (runtime trace).
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var PAIRS = [
+    {
+      id: "scoring",
+      business: {
+        eyebrow: "the problem",
+        title: "One fraud check per payment",
+        body: "The model scores each transfer alone — it can never see a scheme spread across thousands of small, individually-normal-looking transfers."
+      },
+      tech: {
+        eyebrow: "detector.py",
+        title: "detect()",
+        body: "Reads four independent signals (fan-out, fan-in, hop-chain, near-cycle) across a transaction's recent neighborhood — scoring the shape, not one edge."
+      },
+      bridge: "A per-transaction model is structurally blind to patterns that only exist across many transactions. detect() exists specifically to look at the local neighborhood around an account, not just the one payment in front of it."
+    },
+    {
+      id: "fullscan",
+      business: {
+        eyebrow: "why the obvious fix fails",
+        title: "Full account-history checks crash the gateway",
+        body: "Pulling a sender's and receiver's entire transaction history on every payment is O(history) per request — it doesn't survive real volume."
+      },
+      tech: {
+        eyebrow: "models.py / graph_store.py",
+        title: "RollingWindowGraph",
+        body: "Keeps only the last N minutes of activity per account, in memory, as a deque that evicts on every insert — never a database scan."
+      },
+      bridge: "Bounding the lookback window is what makes the check affordable: cost scales with window size, not with how long the platform has existed."
+    },
+    {
+      id: "latency",
+      business: {
+        eyebrow: "the constraint",
+        title: "Legitimate customers can't feel this running",
+        body: "Whatever catches fraud has to add effectively zero delay to an ordinary payment, or the fix is worse than the problem."
+      },
+      tech: {
+        eyebrow: "main.py",
+        title: "_ingest() / _detection_worker()",
+        body: "The customer-visible ack only ever awaits a queue hand-off. Detection runs in a separate concurrent task — never on that path."
+      },
+      bridge: "Measured, not assumed: the real demo run showed an ack-latency delta of +0.0001ms between detection on and off — statistically zero."
+    },
+    {
+      id: "hold",
+      business: {
+        eyebrow: "the policy",
+        title: "Can't just decline a flagged payment",
+        body: "Most flags will turn out wrong. Blocking a legitimate customer's money outright on a heuristic is not an acceptable failure mode."
+      },
+      tech: {
+        eyebrow: "interceptor.py",
+        title: "intercept() → HoldRecord",
+        body: "Flagged funds are parked in escrow (HELD) or simply missed (MISSED) if detection ran too late — the sender's payment itself is never reversed.",
+        pills: [{ label: "held", kind: "ok" }, { label: "missed", kind: "warn" }]
+      },
+      bridge: "A hold is reversible; a decline isn't. The architecture only ever intervenes on the far side of the payment, inside the settlement window — never the customer's own transaction."
+    },
+    {
+      id: "window",
+      business: {
+        eyebrow: "the assumption this all depends on",
+        title: "A real window exists before money is final",
+        body: "Customer-visible 'instant' credit isn't the same as final inter-bank settlement — there's a real gap to act inside. Still unconfirmed against the real rail."
+      },
+      tech: {
+        eyebrow: "config.py / interceptor.py",
+        title: "SETTLEMENT_WINDOW_MS",
+        body: "A single tunable constant intercept() races against — detection must land before this closes, or the hold is recorded as missed, not hidden."
+      },
+      bridge: "This is the one business assumption Phase 0 could not test — it's modeled as a number precisely so the gap between 'simulated' and 'real' stays visible, not papered over."
+    },
+    {
+      id: "metrics",
+      business: {
+        eyebrow: "what success means",
+        title: "₹ saved and customer friction — not just speed",
+        body: "A real internal pitch has to justify itself in money and risk. Technical numbers exist to prove the business case, not replace it."
+      },
+      tech: {
+        eyebrow: "metrics.py",
+        title: "RunMetrics",
+        body: "rings_caught, false_positives, and both latency distributions — the exact fields the end-of-run summary and the cost-benefit case are built from.",
+        pills: [{ label: "rings_caught", kind: "ok" }, { label: "false_positives", kind: "warn" }]
+      },
+      bridge: "Every number in the PRD's cost-benefit section traces back to one of these fields — nothing in that business case is asserted without a matching counter here."
+    },
+    {
+      id: "fanout",
+      business: {
+        eyebrow: "the known risk",
+        title: "Payroll looks just like a mule fan-out",
+        body: "One employer paying many employees and one account splitting stolen money across many mules produce the same shape: one sender, many receivers."
+      },
+      tech: {
+        eyebrow: "models.py / detector.py",
+        title: "TxLabel.BENIGN_FANOUT",
+        body: "A labeled false-positive case the test suite deliberately proves happens — rather than hiding it — whenever fan-out count alone crosses the threshold."
+      },
+      bridge: "Naming this risk in the PRD only matters if the code is honest about reproducing it. The test exists to measure the false-positive rate, not to pretend it's zero."
+    },
+    {
+      id: "memory",
+      business: {
+        eyebrow: "the implicit question",
+        title: "Where does a payment get ‘remembered’?",
+        body: "For any of this to work, the system needs some short-term memory of who's been paying whom — without that memory being the whole account history."
+      },
+      tech: {
+        eyebrow: "graph_store.py",
+        title: "insert_transaction()",
+        body: "Turns one Transaction into two EdgeRecords, filed into the sender's and receiver's own AccountStats — the system's entire short-term memory."
+      },
+      bridge: "This is the literal answer to ‘where does the data live’: not a database table, two small objects appended to two deques, evicted automatically when they age out."
+    }
+  ];
+
+  var board = document.getElementById("board");
+  var businessColumn = document.getElementById("businessColumn");
+  var techColumn = document.getElementById("techColumn");
+  var svg = document.getElementById("connectors");
+  var detailPanel = document.getElementById("detailPanel");
+  var detailText = document.getElementById("detailText");
+  var detailEmpty = document.getElementById("detailEmpty");
+  var resetBtn = document.getElementById("resetBtn");
+
+  var activeId = null;
+
+  function pillsHtml(pills) {
+    if (!pills) return "";
+    var out = '<div class="pills">';
+    pills.forEach(function (p) {
+      out += '<span class="pill ' + p.kind + '">' + p.label + "</span>";
+    });
+    return out + "</div>";
+  }
+
+  PAIRS.forEach(function (pair) {
+    var b = document.createElement("button");
+    b.className = "card business";
+    b.dataset.id = pair.id;
+    b.setAttribute("aria-pressed", "false");
+    b.innerHTML =
+      '<p class="card-eyebrow">' + pair.business.eyebrow + "</p>" +
+      '<p class="card-title">' + pair.business.title + "</p>" +
+      "<p>" + pair.business.body + "</p>";
+    businessColumn.appendChild(b);
+
+    var t = document.createElement("button");
+    t.className = "card tech";
+    t.dataset.id = pair.id;
+    t.setAttribute("aria-pressed", "false");
+    t.innerHTML =
+      '<p class="card-eyebrow">' + pair.tech.eyebrow + "</p>" +
+      '<p class="card-title">' + pair.tech.title + "</p>" +
+      "<p>" + pair.tech.body + "</p>" +
+      pillsHtml(pair.tech.pills);
+    techColumn.appendChild(t);
+  });
+
+  function allCards() {
+    return Array.prototype.slice.call(board.querySelectorAll(".card"));
+  }
+
+  function select(id) {
+    activeId = id;
+    board.classList.add("has-selection");
+    allCards().forEach(function (card) {
+      var isMatch = card.dataset.id === id;
+      card.classList.toggle("active", isMatch);
+      card.setAttribute("aria-pressed", isMatch ? "true" : "false");
+    });
+    var pair = PAIRS.filter(function (p) { return p.id === id; })[0];
+    detailText.textContent = pair.bridge;
+    detailPanel.classList.add("visible");
+    detailEmpty.style.display = "none";
+    resetBtn.hidden = false;
+    drawLines();
+  }
+
+  function deselect() {
+    activeId = null;
+    board.classList.remove("has-selection");
+    allCards().forEach(function (card) {
+      card.classList.remove("active");
+      card.setAttribute("aria-pressed", "false");
+    });
+    detailPanel.classList.remove("visible");
+    detailEmpty.style.display = "block";
+    resetBtn.hidden = true;
+    drawLines();
+  }
+
+  allCards().forEach(function (card) {
+    card.addEventListener("click", function () {
+      if (activeId === card.dataset.id) { deselect(); } else { select(card.dataset.id); }
+    });
+  });
+  resetBtn.addEventListener("click", deselect);
+
+  function linesEnabled() {
+    return window.matchMedia("(min-width: 760px)").matches;
+  }
+
+  function drawLines() {
+    svg.innerHTML = "";
+    if (!linesEnabled()) return;
+
+    var boardRect = board.getBoundingClientRect();
+    svg.setAttribute("viewBox", "0 0 " + boardRect.width + " " + boardRect.height);
+
+    var markerColor = "var(--accent)";
+    svg.innerHTML =
+      '<defs><marker id="dot" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5">' +
+      '<circle cx="4" cy="4" r="3.4" fill="' + markerColor + '"></circle></marker></defs>';
+
+    PAIRS.forEach(function (pair) {
+      var bCard = businessColumn.querySelector('[data-id="' + pair.id + '"]');
+      var tCard = techColumn.querySelector('[data-id="' + pair.id + '"]');
+      if (!bCard || !tCard) return;
+
+      var br = bCard.getBoundingClientRect();
+      var tr = tCard.getBoundingClientRect();
+
+      var x1 = br.right - boardRect.left;
+      var y1 = br.top - boardRect.top + br.height / 2;
+      var x2 = tr.left - boardRect.left;
+      var y2 = tr.top - boardRect.top + tr.height / 2;
+      var mx = (x1 + x2) / 2;
+
+      var isActive = pair.id === activeId;
+      var noSelection = activeId === null;
+      var visible = noSelection || isActive;
+      if (!visible) return;
+
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M " + x1 + " " + y1 + " C " + mx + " " + y1 + ", " + mx + " " + y2 + ", " + x2 + " " + y2);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", isActive ? "var(--accent)" : "var(--line-idle)");
+      path.setAttribute("stroke-width", isActive ? "2.2" : "1.3");
+      path.setAttribute("marker-end", "url(#dot)");
+      svg.appendChild(path);
+    });
+  }
+
+  window.addEventListener("resize", drawLines);
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(drawLines); }
+  window.addEventListener("load", drawLines);
+  drawLines();
+})();
+
+(function () {
+  document.querySelectorAll("table.ledger").forEach(function (table) {
+    var rows = Array.prototype.slice.call(table.querySelectorAll("tbody tr.step-row"));
+
+    function toggleRow(row) {
+      var wasSelected = row.classList.contains("selected");
+      rows.forEach(function (r) {
+        r.classList.remove("selected");
+        r.setAttribute("aria-pressed", "false");
+      });
+      if (wasSelected) {
+        table.classList.remove("has-selection");
+      } else {
+        row.classList.add("selected");
+        row.setAttribute("aria-pressed", "true");
+        table.classList.add("has-selection");
+      }
+    }
+
+    rows.forEach(function (row) {
+      row.addEventListener("click", function () { toggleRow(row); });
+      row.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleRow(row);
+        }
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

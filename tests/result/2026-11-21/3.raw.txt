@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.15.2, pytest-9.2.0, pluggy-1.7.0 -- /Users/mr.dj/workspace/llm-projects/payment-fraud-detector/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mr.dj/workspace/llm-projects/payment-fraud-detector
+configfile: pyproject.toml
+collecting ... collected 9 items
+
+tests/test_simulator.py::test_generate_ring_fans_out_then_fans_in_with_exact_amount_conservation PASSED [ 11%]
+tests/test_simulator.py::test_generate_benign_fanout_labels_as_benign_with_no_ring_id PASSED [ 22%]
+tests/test_simulator.py::test_generate_legit_stream_produces_distinct_labeled_transactions PASSED [ 33%]
+tests/test_simulator.py::test_generate_ring_rejects_empty_mule_list PASSED [ 44%]
+tests/test_simulator.py::test_generate_ring_rejects_non_positive_amount PASSED [ 55%]
+tests/test_simulator.py::test_generate_ring_remainder_goes_to_first_mule_not_lost PASSED [ 66%]
+tests/test_simulator.py::test_generate_benign_fanout_rejects_empty_employee_list PASSED [ 77%]
+tests/test_simulator.py::test_generate_legit_stream_rejects_negative_count PASSED [ 88%]
+tests/test_simulator.py::test_generate_legit_stream_rejects_too_small_account_pool PASSED [100%]
+
+============================== slowest durations ===============================
+
+(27 durations < 0.005s hidden.  Use -vv to show these durations.)
+============================== 9 passed in 0.02s ===============================

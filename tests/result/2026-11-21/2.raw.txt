@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.15.2, pytest-9.2.0, pluggy-1.7.0 -- /Users/mr.dj/workspace/llm-projects/payment-fraud-detector/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mr.dj/workspace/llm-projects/payment-fraud-detector
+configfile: pyproject.toml
+collecting ... collected 6 items
+
+tests/test_graph_store.py::test_single_transaction_updates_both_sides PASSED [ 16%]
+tests/test_graph_store.py::test_fan_out_accumulates_distinct_counterparties PASSED [ 33%]
+tests/test_graph_store.py::test_node_and_edge_counts_reflect_inserted_transactions PASSED [ 50%]
+tests/test_graph_store.py::test_edge_older_than_window_is_evicted_on_next_insert PASSED [ 66%]
+tests/test_graph_store.py::test_edge_exactly_at_cutoff_boundary_is_not_evicted PASSED [ 83%]
+tests/test_graph_store.py::test_self_transfer_does_not_crash_and_records_both_edges PASSED [100%]
+
+============================== slowest durations ===============================
+
+(18 durations < 0.005s hidden.  Use -vv to show these durations.)
+============================== 6 passed in 0.02s ===============================

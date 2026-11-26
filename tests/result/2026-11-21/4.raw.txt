@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.15.2, pytest-9.2.0, pluggy-1.7.0 -- /Users/mr.dj/workspace/llm-projects/payment-fraud-detector/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mr.dj/workspace/llm-projects/payment-fraud-detector
+configfile: pyproject.toml
+collecting ... collected 11 items
+
+tests/test_detector.py::test_fan_out_flags_when_distinct_receivers_reach_threshold PASSED [  9%]
+tests/test_detector.py::test_fan_in_flags_when_distinct_senders_reach_threshold PASSED [ 18%]
+tests/test_detector.py::test_hop_chain_flags_fast_pass_through PASSED    [ 27%]
+tests/test_detector.py::test_near_cycle_flags_direct_round_trip PASSED   [ 36%]
+tests/test_detector.py::test_detect_flags_full_ring_with_multiple_reason_codes PASSED [ 45%]
+tests/test_detector.py::test_fan_out_does_not_flag_below_threshold PASSED [ 54%]
+tests/test_detector.py::test_fan_in_does_not_flag_below_threshold PASSED [ 63%]
+tests/test_detector.py::test_hop_chain_does_not_flag_when_forward_is_too_slow PASSED [ 72%]
+tests/test_detector.py::test_near_cycle_does_not_flag_one_directional_transfer PASSED [ 81%]
+tests/test_detector.py::test_detect_does_not_flag_an_ordinary_single_transaction PASSED [ 90%]
+tests/test_detector.py::test_known_limitation_benign_payroll_fanout_above_threshold_is_a_false_positive PASSED [100%]
+
+============================== slowest durations ===============================
+
+(33 durations < 0.005s hidden.  Use -vv to show these durations.)
+============================== 11 passed in 0.03s ==============================
